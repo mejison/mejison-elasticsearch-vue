@@ -10,38 +10,15 @@
           <div class="col">
             <vuetable 
                 ref="vuetable"
-                :api-mode="true"
+                :api-url="apiUrl"
                 :http-fetch="fetchData"
                 :css="css.table"
                 :fields="fields"
+                data-path=""
                 :sort-order="sortOrder"
-                :data="data"
                 :per-page="filter.per_page"
-                pagination-path="pagination"
-                @vuetable:pagination-data="onPaginationData"
               >
             </vuetable>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-2">
-            <select 
-              class="form-control" 
-              v-model="filter.per_page"
-              @change="onChangePerPage"
-              >
-              <option 
-                v-for="(perPage, index) in perPageOptions" 
-                :key="index" 
-                :value="perPage.value"
-                >{{  perPage.name  }}</option> 
-            </select>
-          </div>
-          <div class="col">
-            <vuetable-pagination 
-              :css="css.pagination"
-              @vuetable-pagination:change-page="onChangePage"
-              ref="pagination"></vuetable-pagination>
           </div>
         </div>
       </div>
@@ -56,51 +33,41 @@ export default {
   name: 'App',
   data() {
     return {
-      apiUrl: 'https://localhsot:3000/api/v1/items',
+      apiUrl: 'http://localhost:8000/search/',
       fields: [
         {
-          title: 'Name',
-          name: 'name',
-          sortField: 'name'
+          title: 'Customers ID',
+          name: 'customers_id',
+          sortField: 'customers_id'
         },
         {
-          title: 'Email',
-          name: 'email',
-          sortField: 'email'
+          title: 'Customers Firstname',
+          name: 'customers_firstname',
+          sortField: 'customers_firstname'
         },
         {
-          title: 'Age',
-          name: 'age',
-          sortField: 'age'
+          title: 'Customers Lastname',
+          name: 'customers_lastname',
+          sortField: 'customers_lastname'
+        },
+        {
+          title: 'Login Time',
+          name: 'login_time',
+          sortField: 'login_time'
+        },
+        {
+          title: 'Customers Email Address',
+          name: 'customers_email_address',
+          sortField: 'customers_email_address'
         }
       ],
       sortOrder: [
         {
-          field: 'name',
+          field: 'customers_id',
           direction: 'asc'
         }
       ],
       css: vuetablecssbootstrap,
-      data: [
-        {
-          "id": 1,
-          "name": "name1",
-          "email": "name1@xxx.xxx",
-          "age": 22,
-        },
-        {
-          "id": 2,
-          "name": "name2",
-          "email": "name2@xxx.xxx",
-          "age": 21,
-        },
-        {
-          "id": 3,
-          "name": "name3",
-          "email": "name3@xxx.xxx",
-          "age": 23,
-        },
-      ],
       queryParams: {
         sort: 'sort',
         page: 'page',
@@ -108,53 +75,34 @@ export default {
       },
       filter: {
         search: '',
-        per_page: 15,
-        page: 1,
+        ordering: 'customers_id',
       },
-      perPageOptions: [
-        {
-          name: '15',
-          value: 15,
-        },
-        {
-          name: '30',
-          value: 30
-        },
-        {
-          name: '50',
-          value: 50
-        },
-        {
-          name: '100',
-          value: 100
-        },
-      ],
     }
   },
   methods: {
     fetchData() {
-      const params = { 
-        ...this.filter,
-        sort: this.sortOrder.reduce((curr, item) => `${item.field}|${item.direction}`, '')
+      let params = { 
+        ordering: this.sortOrder.reduce((curr, item) => `${item.direction == 'asc' ? '' : '-'}${item.field}`, '')
       };
+
+      let searchQuery = this.getSearchQuery();
+      if (this.filter.search) {
+        params = {
+          ...params,
+          ...searchQuery,
+        }
+      }
 
      return axios.get(this.apiUrl, { params })
     },
-    onChangePage(page) {
-      this.filter = {
-        ...this.filter,
-        page,
-      }
-      this.$refs.vuetable.changePage(page);
-    },
-    onPaginationData (paginationData) {
-      this.$refs.pagination.setPaginationData(paginationData)
-    },
-    onChangePerPage() {
-      this.fetchData(this.apiUrl);
+    getSearchQuery() {
+      return ['customers_lastname'].reduce((acc, field) => {
+        acc[`${field}__wildcard`] = `*${this.filter.search}*`
+        return acc
+      }, {})
     },
     onSearch() {
-      this.fetchData(this.apiUrl);  
+      this.$refs.vuetable.refresh();
     },
   },
 }
